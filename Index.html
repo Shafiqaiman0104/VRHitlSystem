@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom HITL Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+    }
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      padding: 1rem;
+    }
+    .conversation {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .conversation h3 {
+      margin: 0 0 0.5rem 0;
+    }
+    .message-box {
+      display: flex;
+      margin-top: 1rem;
+    }
+    .message-box input {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .message-box button {
+      padding: 0.5rem 1rem;
+      margin-left: 0.5rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .message-box button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Custom HITL Interface</h1>
+  </header>
+  <div class="container">
+    <div id="conversations"></div>
+  </div>  <script>
+    // Replace with your Botpress API and token
+    const API_BASE = "https://venturerush.up.railway.app/api/v1";
+    const API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80";
+
+    async function fetchConversations() {
+      const response = await fetch(`${API_BASE}/conversations`, {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`
+        }
+      });
+      const data = await response.json();
+      renderConversations(data);
+    }
+
+    function renderConversations(conversations) {
+      const container = document.getElementById("conversations");
+      container.innerHTML = "";
+      conversations.forEach((conv) => {
+        const div = document.createElement("div");
+        div.className = "conversation";
+        div.innerHTML = `
+          <h3>Conversation ID: ${conv.id}</h3>
+          <div class="message-box">
+            <input type="text" placeholder="Type a reply..." id="msg-${conv.id}" />
+            <button onclick="sendReply('${conv.id}')">Send</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function sendReply(conversationId) {
+      const input = document.getElementById(`msg-${conversationId}`);
+      const message = input.value.trim();
+      if (!message) return;
+
+      await fetch(`${API_BASE}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`
+        },
+        body: JSON.stringify({
+          conversationId: conversationId,
+          payload: {
+            type: "text",
+            text: message
+          }
+        })
+      });
+
+      input.value = "";
+      alert("Message sent!");
+    }
+
+    fetchConversations();
+  </script></body>
+  </html>
