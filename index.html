@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -51,6 +52,15 @@
     .message-box button:hover {
       background-color: #0056b3;
     }
+    #debug {
+      background: #222;
+      color: #0f0;
+      padding: 1rem;
+      font-size: 12px;
+      height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -59,19 +69,34 @@
   </header>
   <div class="container">
     <div id="conversations"></div>
-  </div>  <script>
-    // Replace with your Botpress API and token
+  </div>
+
+  <div id="debug">[Debug Console Initialized]</div>
+
+  <script>
     const API_BASE = "https://venturerush.up.railway.app/api/v1";
     const API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80";
 
+    const debug = (msg) => {
+      console.log(msg);
+      document.getElementById("debug").textContent += `\n${msg}`;
+    };
+
     async function fetchConversations() {
-      const response = await fetch(`${API_BASE}/conversations`, {
-        headers: {
-          Authorization: `Bearer ${API_TOKEN}`
-        }
-      });
-      const data = await response.json();
-      renderConversations(data);
+      debug("Fetching conversations...");
+      try {
+        const response = await fetch(`${API_BASE}/conversations`, {
+          headers: {
+            Authorization: `Bearer ${API_TOKEN}`
+          }
+        });
+        debug(`Status: ${response.status}`);
+        const data = await response.json();
+        debug(`Fetched ${data.length} conversations`);
+        renderConversations(data);
+      } catch (error) {
+        debug(`Error fetching conversations: ${error}`);
+      }
     }
 
     function renderConversations(conversations) {
@@ -96,25 +121,40 @@
       const message = input.value.trim();
       if (!message) return;
 
-      await fetch(`${API_BASE}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`
-        },
-        body: JSON.stringify({
-          conversationId: conversationId,
-          payload: {
-            type: "text",
-            text: message
-          }
-        })
-      });
+      debug(`Sending message to ${conversationId}: "${message}"`);
+
+      try {
+        const res = await fetch(`${API_BASE}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_TOKEN}`
+          },
+          body: JSON.stringify({
+            conversationId: conversationId,
+            payload: {
+              type: "text",
+              text: message
+            }
+          })
+        });
+
+        debug(`Message send status: ${res.status}`);
+        if (res.ok) {
+          alert("Message sent!");
+        } else {
+          const err = await res.text();
+          debug(`Send error: ${err}`);
+          alert("Failed to send message.");
+        }
+      } catch (error) {
+        debug(`Error sending message: ${error}`);
+      }
 
       input.value = "";
-      alert("Message sent!");
     }
 
     fetchConversations();
-  </script></body>
+  </script>
+</body>
   </html>
