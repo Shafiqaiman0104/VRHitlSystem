@@ -1,180 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Custom HITL Panel</title>
+  <title>Bot Chat</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f0f0f0;
-    }
-    header {
-      background-color: #333;
-      color: #fff;
-      padding: 1rem;
-      text-align: center;
-    }
-    .container {
-      padding: 1rem;
-    }
-    .conversation {
-      background: white;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .conversation h3 {
-      margin: 0 0 0.5rem 0;
-    }
-    .message-box {
-      display: flex;
-      margin-top: 1rem;
-    }
-    .message-box input {
-      flex: 1;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .message-box button {
-      padding: 0.5rem 1rem;
-      margin-left: 0.5rem;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .message-box button:hover {
-      background-color: #0056b3;
-    }
-    #debug {
-      background: #222;
-      color: #0f0;
-      padding: 1rem;
-      font-size: 12px;
-      height: 150px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    .chat-log { margin-bottom: 20px; }
+    .chat-log div { margin: 5px 0; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Custom HITL Interface</h1>
-  </header>
-  <div class="container">
-    <div id="conversations"></div>
-  </div>
-
-  <div id="debug">[Debug Console Initialized]</div>
+  <h2>Talk to MK Rimba Bot</h2>
+  <div class="chat-log" id="chat-log"></div>
+  <input type="text" id="userInput" placeholder="Type a message..." />
+  <button onclick="sendMessage()">Send</button>
 
   <script>
-  const API_BASE = "https://venturerush.up.railway.app/admin/api/workspaces/default";
-  const API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80"; // Replace if needed
+    const API_URL = "https://venturerush.up.railway.app/api/v1/bots/mk-ai-chatbot/converse/1c44773e-2ec6-4f3b-891d-cfa973e1a0c8";
+    const AUTH_TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80"; // your full JWT
 
-  const debug = (msg) => {
-    console.log(msg);
-    document.getElementById("debug").textContent += `\n${msg}`;
-  };
-
-  async function fetchConversations() {
-    debug("Fetching conversations...");
-    try {
-      const response = await fetch(`${API_BASE}/conversations`, {
-        headers: { Authorization: `Bearer ${API_TOKEN}` }
-      });
-      debug(`Status: ${response.status}`);
-      const data = await response.json();
-      debug(`Fetched ${data.length} conversations`);
-      renderConversations(data);
-    } catch (error) {
-      debug(`Error fetching conversations: ${error}`);
+    function appendMessage(from, text) {
+      const log = document.getElementById("chat-log");
+      const msgDiv = document.createElement("div");
+      msgDiv.innerHTML = `<strong>${from}:</strong> ${text}`;
+      log.appendChild(msgDiv);
     }
-  }
 
-  async function fetchMessages(conversationId) {
-    try {
-      const res = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
-        headers: { Authorization: `Bearer ${API_TOKEN}` }
-      });
-      const messages = await res.json();
-      return messages;
-    } catch (error) {
-      debug(`Error fetching messages for ${conversationId}: ${error}`);
-      return [];
-    }
-  }
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const text = input.value.trim();
+      if (!text) return;
 
-  async function renderConversations(conversations) {
-    const container = document.getElementById("conversations");
-    container.innerHTML = "";
+      appendMessage("You", text);
+      input.value = "";
 
-    for (const conv of conversations) {
-      const messages = await fetchMessages(conv.id);
-      const div = document.createElement("div");
-      div.className = "conversation";
-
-      let messagesHtml = "";
-      messages.forEach(msg => {
-        const sender = msg.direction === "incoming" ? "🧠 Bot" : "👤 User";
-        messagesHtml += `<div><strong>${sender}:</strong> ${msg.payload?.text || '[Non-text message]'}</div>`;
-      });
-
-      div.innerHTML = `
-        <h3>Conversation ID: ${conv.id}</h3>
-        <div class="chat-messages">${messagesHtml || 'No messages yet.'}</div>
-        <div class="message-box">
-          <input type="text" placeholder="Type a reply..." id="msg-${conv.id}" />
-          <button onclick="sendReply('${conv.id}')">Send</button>
-        </div>
-      `;
-      container.appendChild(div);
-    }
-  }
-
-  async function sendReply(conversationId) {
-    const input = document.getElementById(`msg-${conversationId}`);
-    const message = input.value.trim();
-    if (!message) return;
-
-    debug(`Sending message to ${conversationId}: "${message}"`);
-
-    try {
-      const res = await fetch(`${API_BASE}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_TOKEN}`
-        },
-        body: JSON.stringify({
-          conversationId: conversationId,
-          payload: {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": AUTH_TOKEN
+          },
+          body: JSON.stringify({
             type: "text",
-            text: message
-          }
-        })
-      });
+            text
+          })
+        });
 
-      debug(`Message send status: ${res.status}`);
-      if (res.ok) {
-        input.value = "";
-        fetchConversations(); // Refresh conversation after sending
-      } else {
-        const err = await res.text();
-        debug(`Send error: ${err}`);
-        alert("Failed to send message.");
+        const result = await res.json();
+        result.responses.forEach(response => {
+          appendMessage("Bot", response.text || "[No text]");
+        });
+      } catch (err) {
+        console.error("Error:", err);
+        appendMessage("System", "Error sending message");
       }
-    } catch (error) {
-      debug(`Error sending message: ${error}`);
     }
-  }
-
-  fetchConversations();
-                            </script>
+  </script>
 </body>
-  </html>
+</html>
