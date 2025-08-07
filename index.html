@@ -74,87 +74,107 @@
   <div id="debug">[Debug Console Initialized]</div>
 
   <script>
-    const API_BASE = "https://venturerush.up.railway.app/admin/api/workspaces/default";
-    const API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80";
+  const API_BASE = "https://venturerush.up.railway.app/admin/api/workspaces/default";
+  const API_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80"; // Replace if needed
 
-    const debug = (msg) => {
-      console.log(msg);
-      document.getElementById("debug").textContent += `\n${msg}`;
-    };
+  const debug = (msg) => {
+    console.log(msg);
+    document.getElementById("debug").textContent += `\n${msg}`;
+  };
 
-    async function fetchConversations() {
-      debug("Fetching conversations...");
-      try {
-        const response = await fetch(`${API_BASE}/conversations`, {
-          headers: {
-            Authorization: `Bearer ${API_TOKEN}`
-          }
-        });
-        debug(`Status: ${response.status}`);
-        const data = await response.json();
-        debug(`Fetched ${data.length} conversations`);
-        renderConversations(data);
-      } catch (error) {
-        debug(`Error fetching conversations: ${error}`);
-      }
-    }
-
-    function renderConversations(conversations) {
-      const container = document.getElementById("conversations");
-      container.innerHTML = "";
-      conversations.forEach((conv) => {
-        const div = document.createElement("div");
-        div.className = "conversation";
-        div.innerHTML = `
-          <h3>Conversation ID: ${conv.id}</h3>
-          <div class="message-box">
-            <input type="text" placeholder="Type a reply..." id="msg-${conv.id}" />
-            <button onclick="sendReply('${conv.id}')">Send</button>
-          </div>
-        `;
-        container.appendChild(div);
+  async function fetchConversations() {
+    debug("Fetching conversations...");
+    try {
+      const response = await fetch(`${API_BASE}/conversations`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` }
       });
+      debug(`Status: ${response.status}`);
+      const data = await response.json();
+      debug(`Fetched ${data.length} conversations`);
+      renderConversations(data);
+    } catch (error) {
+      debug(`Error fetching conversations: ${error}`);
     }
+  }
 
-    async function sendReply(conversationId) {
-      const input = document.getElementById(`msg-${conversationId}`);
-      const message = input.value.trim();
-      if (!message) return;
+  async function fetchMessages(conversationId) {
+    try {
+      const res = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+        headers: { Authorization: `Bearer ${API_TOKEN}` }
+      });
+      const messages = await res.json();
+      return messages;
+    } catch (error) {
+      debug(`Error fetching messages for ${conversationId}: ${error}`);
+      return [];
+    }
+  }
 
-      debug(`Sending message to ${conversationId}: "${message}"`);
+  async function renderConversations(conversations) {
+    const container = document.getElementById("conversations");
+    container.innerHTML = "";
 
-      try {
-        const res = await fetch(`${API_BASE}/messages`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${API_TOKEN}`
-          },
-          body: JSON.stringify({
-            conversationId: conversationId,
-            payload: {
-              type: "text",
-              text: message
-            }
-          })
-        });
+    for (const conv of conversations) {
+      const messages = await fetchMessages(conv.id);
+      const div = document.createElement("div");
+      div.className = "conversation";
 
-        debug(`Message send status: ${res.status}`);
-        if (res.ok) {
-          alert("Message sent!");
-        } else {
-          const err = await res.text();
-          debug(`Send error: ${err}`);
-          alert("Failed to send message.");
-        }
-      } catch (error) {
-        debug(`Error sending message: ${error}`);
+      let messagesHtml = "";
+      messages.forEach(msg => {
+        const sender = msg.direction === "incoming" ? "🧠 Bot" : "👤 User";
+        messagesHtml += `<div><strong>${sender}:</strong> ${msg.payload?.text || '[Non-text message]'}</div>`;
+      });
+
+      div.innerHTML = `
+        <h3>Conversation ID: ${conv.id}</h3>
+        <div class="chat-messages">${messagesHtml || 'No messages yet.'}</div>
+        <div class="message-box">
+          <input type="text" placeholder="Type a reply..." id="msg-${conv.id}" />
+          <button onclick="sendReply('${conv.id}')">Send</button>
+        </div>
+      `;
+      container.appendChild(div);
+    }
+  }
+
+  async function sendReply(conversationId) {
+    const input = document.getElementById(`msg-${conversationId}`);
+    const message = input.value.trim();
+    if (!message) return;
+
+    debug(`Sending message to ${conversationId}: "${message}"`);
+
+    try {
+      const res = await fetch(`${API_BASE}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_TOKEN}`
+        },
+        body: JSON.stringify({
+          conversationId: conversationId,
+          payload: {
+            type: "text",
+            text: message
+          }
+        })
+      });
+
+      debug(`Message send status: ${res.status}`);
+      if (res.ok) {
+        input.value = "";
+        fetchConversations(); // Refresh conversation after sending
+      } else {
+        const err = await res.text();
+        debug(`Send error: ${err}`);
+        alert("Failed to send message.");
       }
-
-      input.value = "";
+    } catch (error) {
+      debug(`Error sending message: ${error}`);
     }
+  }
 
-    fetchConversations();
-  </script>
+  fetchConversations();
+                            </script>
 </body>
   </html>
