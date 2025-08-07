@@ -6,6 +6,24 @@
     body { font-family: sans-serif; padding: 20px; }
     .chat-log { margin-bottom: 20px; }
     .chat-log div { margin: 5px 0; }
+
+    #debug-console {
+      white-space: pre-wrap;
+      background: #111;
+      color: #0f0;
+      padding: 10px;
+      margin-top: 20px;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+
+    .debug-toggle {
+      margin-top: 10px;
+      padding: 5px 10px;
+    }
   </style>
 </head>
 <body>
@@ -14,9 +32,25 @@
   <input type="text" id="userInput" placeholder="Type a message..." />
   <button onclick="sendMessage()">Send</button>
 
+  <button class="debug-toggle" onclick="toggleDebug()">Toggle Console</button>
+  <div id="debug-console"></div>
+
   <script>
     const API_URL = "https://venturerush.up.railway.app/api/v1/bots/mk-ai-chatbot/converse/1c44773e-2ec6-4f3b-891d-cfa973e1a0c8";
-    const AUTH_TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80"; // your full JWT
+    const AUTH_TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80";
+
+    // Console log mirroring
+    const debugConsole = document.getElementById("debug-console");
+    function debug(msg) {
+      const timestamp = new Date().toISOString();
+      debugConsole.textContent += `[${timestamp}] ${msg}\n`;
+      debugConsole.scrollTop = debugConsole.scrollHeight;
+      console.log(msg); // still logs to browser console
+    }
+
+    function toggleDebug() {
+      debugConsole.style.display = debugConsole.style.display === "none" ? "block" : "none";
+    }
 
     function appendMessage(from, text) {
       const log = document.getElementById("chat-log");
@@ -33,6 +67,8 @@
       appendMessage("You", text);
       input.value = "";
 
+      debug("Sending message: " + text);
+
       try {
         const res = await fetch(API_URL, {
           method: "POST",
@@ -46,12 +82,16 @@
           })
         });
 
+        debug("Status code: " + res.status);
+
         const result = await res.json();
+        debug("Response JSON: " + JSON.stringify(result));
+
         result.responses.forEach(response => {
           appendMessage("Bot", response.text || "[No text]");
         });
       } catch (err) {
-        console.error("Error:", err);
+        debug("Fetch error: " + err);
         appendMessage("System", "Error sending message");
       }
     }
