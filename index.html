@@ -23,6 +23,7 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      transition: width 0.3s ease, height 0.3s ease;
     }
     #chat-header {
       background: #0078d4;
@@ -103,6 +104,26 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    /* === Medium desktops / tablets === */
+    @media (min-width: 481px) and (max-width: 1023px) {
+      #chat-container {
+        width: 600px;
+        height: 700px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      }
+    }
+
+    /* === Large desktops (PC mode) === */
+    @media (min-width: 1024px) {
+      #chat-container {
+        width: 800px;
+        height: 700px;
+        border-radius: 12px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.2);
       }
     }
 
