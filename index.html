@@ -163,6 +163,12 @@
         chatMessages.appendChild(div);
       });
       chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      // Reset all dropdowns' selectedIndex to 0 (placeholder)
+      chatMessages.querySelectorAll('select').forEach(select => {
+        select.selectedIndex = 0;
+      });
+
       return true;
     } catch {
       return false;
