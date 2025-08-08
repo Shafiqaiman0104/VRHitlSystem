@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Venturerush Chatbot's</title>
-   <style>
+  <style>
     /* Basic reset */
     * {
       box-sizing: border-box;
@@ -41,9 +41,23 @@
       scroll-behavior: smooth;
       background: #e6f0ff;
     }
-    .message {
+
+    /* NEW: container for each message for alignment */
+    .message-row {
+      display: flex;
       margin-bottom: 12px;
-      max-width: 80%;
+    }
+    .message-row.user {
+      justify-content: flex-end;
+    }
+    .message-row.bot {
+      justify-content: flex-start;
+    }
+
+    /* Keep the bubble styling */
+    .message {
+      display: inline-block;  /* Make bubble shrink to fit content */
+      max-width: 50%;
       padding: 10px 14px;
       border-radius: 18px;
       line-height: 1.4;
@@ -51,24 +65,23 @@
       user-select: text;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
       animation: fadeInUp 0.3s ease;
-
-      display: block;
-      white-space: normal;
+      white-space: normal; /* allow wrapping */
     }
-    .user {
+
+    .user .message {
       background: #0078d4;
       color: white;
       border-bottom-right-radius: 2px;
-      margin-left: auto;
-      margin-right: 0;
+      margin-left: 8px; /* small space from edge */
     }
-    .bot {
+
+    .bot .message {
       background: #f1f0f0;
       color: #333;
       border-bottom-left-radius: 2px;
-      margin-right: auto;
-      margin-left: 0;
+      margin-right: 8px; /* small space from edge */
     }
+
     #chat-input {
       display: flex;
       padding: 10px 16px;
@@ -177,8 +190,6 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
-  // ... YOUR EXISTING JAVASCRIPT CODE HERE, unchanged ...
-
   const chatMessages = document.getElementById('chat-messages');
   const chatForm = document.getElementById('chat-input');
   const messageInput = document.getElementById('message');
@@ -192,10 +203,12 @@
 
   function saveChatHistory() {
     const messages = [];
-    chatMessages.querySelectorAll('.message').forEach(msg => {
+    chatMessages.querySelectorAll('.message-row').forEach(row => {
+      const msg = row.querySelector('.message');
+      if (!msg) return;
       messages.push({
         text: msg.innerHTML,
-        sender: msg.classList.contains('user') ? 'user' : 'bot'
+        sender: row.classList.contains('user') ? 'user' : 'bot'
       });
     });
     localStorage.setItem('chatHistory', JSON.stringify(messages));
@@ -220,14 +233,20 @@
     try {
       const messages = JSON.parse(history);
       messages.forEach(({ text, sender }) => {
+        const row = document.createElement('div');
+        row.classList.add('message-row', sender);
+
         const div = document.createElement('div');
-        div.classList.add('message', sender);
+        div.classList.add('message');
+
         if (sender === 'user') {
           div.textContent = text.replace(/<[^>]+>/g, '');
         } else {
           div.innerHTML = text;
         }
-        chatMessages.appendChild(div);
+
+        row.appendChild(div);
+        chatMessages.appendChild(row);
       });
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -243,8 +262,11 @@
   }
 
   function addMessage(text, sender = 'bot', markdownFlag = false) {
+    const row = document.createElement('div');
+    row.classList.add('message-row', sender);
+
     const div = document.createElement('div');
-    div.classList.add('message', sender);
+    div.classList.add('message');
 
     if (sender === 'bot') {
       if (markdownFlag) {
@@ -258,15 +280,19 @@
       div.textContent = text;
     }
 
-    chatMessages.appendChild(div);
+    row.appendChild(div);
+    chatMessages.appendChild(row);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     saveChatHistory();
   }
 
   function addImageMessage(imageUrl, title = '') {
+    const row = document.createElement('div');
+    row.classList.add('message-row', 'bot');
+
     const div = document.createElement('div');
-    div.classList.add('message', 'bot');
+    div.classList.add('message');
 
     if (title) {
       const titleElem = document.createElement('div');
@@ -283,47 +309,59 @@
     img.style.borderRadius = '12px';
     div.appendChild(img);
 
-    chatMessages.appendChild(div);
+    row.appendChild(div);
+    chatMessages.appendChild(row);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     saveChatHistory();
   }
 
-  function addChoiceMessage(response) {
-    const container = document.createElement('div');
-    container.classList.add('message', 'bot');
+function addChoiceMessage(response) {
+  const row = document.createElement('div');
+  row.classList.add('message-row', 'bot');
 
-    const label = document.createElement('div');
-    label.textContent = response.text || 'Choose an option:';
-    label.style.marginBottom = '8px';
-    container.appendChild(label);
+  // Create the bubble div with message styles
+  const bubble = document.createElement('div');
+  bubble.classList.add('message');
 
-    const select = document.createElement('select');
-    select.style.padding = '8px';
-    select.style.borderRadius = '8px';
-    select.style.width = '100%';
+  const label = document.createElement('div');
+  label.textContent = response.text || 'Choose an option:';
+  label.style.marginBottom = '8px';
 
-    const placeholderOption = document.createElement('option');
-    placeholderOption.textContent = response.dropdownPlaceholder || 'Select...';
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    select.appendChild(placeholderOption);
+  const select = document.createElement('select');
+  select.style.padding = '8px';
+  select.style.borderRadius = '8px';
 
-    for (const choice of response.choices) {
-      const option = document.createElement('option');
-      option.value = choice.value;
-      option.textContent = choice.title;
-      select.appendChild(option);
-    }
+  // Dropdown width settings to fit content
+  select.style.minWidth = '150px';
+  select.style.maxWidth = '70vw';
+  select.style.width = 'auto';
+  select.style.display = 'inline-block';
 
-    container.appendChild(select);
-    chatMessages.appendChild(container);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+  const placeholderOption = document.createElement('option');
+  placeholderOption.textContent = response.dropdownPlaceholder || 'Select...';
+  placeholderOption.disabled = true;
+  placeholderOption.selected = true;
+  select.appendChild(placeholderOption);
 
-    saveChatHistory();
-
-    attachDropdownListener(select);
+  for (const choice of response.choices) {
+    const option = document.createElement('option');
+    option.value = choice.value;
+    option.textContent = choice.title;
+    select.appendChild(option);
   }
+
+  bubble.appendChild(label);
+  bubble.appendChild(select);
+  row.appendChild(bubble);
+  chatMessages.appendChild(row);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  saveChatHistory();
+
+  attachDropdownListener(select);
+}
+
 
   let userId = localStorage.getItem('botpressUserId');
   if (!userId) {
