@@ -145,6 +145,30 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  // Add image message support
+  function addImageMessage(imageUrl, title = '') {
+    const div = document.createElement('div');
+    div.classList.add('message', 'bot');
+
+    if (title) {
+      const titleElem = document.createElement('div');
+      titleElem.textContent = title;
+      titleElem.style.fontWeight = '600';
+      titleElem.style.marginBottom = '6px';
+      div.appendChild(titleElem);
+    }
+
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = title || 'Botpress Image';
+    img.style.maxWidth = '100%';
+    img.style.borderRadius = '12px';
+    div.appendChild(img);
+
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
   // Add single-choice dropdown message
   function addChoiceMessage(response) {
     const container = document.createElement('div');
@@ -213,6 +237,8 @@
             addMessage(r.text, 'bot');
           } else if (r.type === 'single-choice') {
             addChoiceMessage(r);
+          } else if (r.type === 'image') {
+            addImageMessage(r.image, r.title);
           }
         }
       } else {
