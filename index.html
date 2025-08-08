@@ -1,82 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>MK HITL Console</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Venturerush Chatbot</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-    .chat-log { margin-bottom: 20px; max-height: 300px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ccc; }
-    .chat-log div { margin: 5px 0; }
-    #consoleLog { display: none; background: #000; color: #0f0; padding: 10px; height: 200px; overflow-y: auto; margin-top: 10px; }
+    /* Basic reset */
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      margin: 0; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh;
+    }
+    #chat-container {
+      width: 400px;
+      max-width: 100%;
+      height: 600px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #chat-header {
+      background: #0078d4;
+      color: white;
+      padding: 16px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-align: center;
+      user-select: none;
+    }
+    #chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      background: #e6f0ff;
+    }
+    .message {
+      margin-bottom: 12px;
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      user-select: text;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      animation: fadeInUp 0.3s ease;
+    }
+    .user {
+      background: #0078d4;
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 2px;
+    }
+    .bot {
+      background: #f1f0f0;
+      color: #333;
+      margin-right: auto;
+      border-bottom-left-radius: 2px;
+    }
+    #chat-input {
+      display: flex;
+      padding: 10px 16px;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+    }
+    #chat-input input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    #chat-input input:focus {
+      border-color: #0078d4;
+    }
+    #chat-input button {
+      margin-left: 12px;
+      background: #0078d4;
+      border: none;
+      color: white;
+      padding: 0 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    #chat-input button:hover {
+      background: #005ea3;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 <body>
-  <h2>MK Admin Chat (HITL)</h2>
-  <div class="chat-log" id="chat-log"></div>
-  <input type="text" id="adminInput" placeholder="Type your reply..." />
-  <button onclick="sendAdminMessage()">Send as Admin</button>
-  <br><br>
-  <button onclick="toggleConsole()">Toggle Console Log</button>
-  <div id="consoleLog"></div>
+  <div id="chat-container">
+    <div id="chat-header">Venturerush Chatbot 🤖</div>
+    <div id="chat-messages"></div>
+    <form id="chat-input" autocomplete="off">
+      <input type="text" id="message" placeholder="Type your message..." required />
+      <button type="submit">Send</button>
+    </form>
+  </div>
 
   <script>
-    const API_URL = "https://venturerush.up.railway.app/api/v1/bots/mk-ai-chatbot/converse/38a33848-4c4f-446a-aae6-1f795ee1c182";
-    const AUTH_TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZlbnR1cmVydXNoLmNzQGdtYWlsLmNvbSIsInN0cmF0ZWd5IjoiZGVmYXVsdCIsInRva2VuVmVyc2lvbiI6MSwiaXNTdXBlckFkbWluIjp0cnVlLCJpYXQiOjE3NTQ1ODkxNjIsImV4cCI6MTc1NDU5Mjc2MiwiYXVkIjoiY29sbGFib3JhdG9ycyJ9.Yx27GHtHa05dE3-49OR0vXZQzhrkMyz0_u_H9gO1J80";
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-input');
+    const messageInput = document.getElementById('message');
 
-    const logConsole = (msg) => {
-      const consoleDiv = document.getElementById("consoleLog");
-      const line = document.createElement("div");
-      line.textContent = `[${new Date().toISOString()}] ${msg}`;
-      consoleDiv.appendChild(line);
-      consoleDiv.scrollTop = consoleDiv.scrollHeight;
-    };
+    // Your Botpress API info
+    const BOT_ID = "mk-ai-chatbot";
+    const BP_API_URL = "https://venturerush.up.railway.app/api/v1";
 
-    function toggleConsole() {
-      const consoleDiv = document.getElementById("consoleLog");
-      consoleDiv.style.display = consoleDiv.style.display === "none" ? "block" : "none";
+    // Helper: Add message to chat window
+    function addMessage(text, sender = 'bot') {
+      const div = document.createElement('div');
+      div.classList.add('message', sender);
+      div.textContent = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function appendMessage(from, text) {
-      const log = document.getElementById("chat-log");
-      const msgDiv = document.createElement("div");
-      msgDiv.innerHTML = `<strong>${from}:</strong> ${text}`;
-      log.appendChild(msgDiv);
-      log.scrollTop = log.scrollHeight;
-    }
+    // On form submit (send message)
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    async function sendAdminMessage() {
-      const input = document.getElementById("adminInput");
-      const text = input.value.trim();
+      const text = messageInput.value.trim();
       if (!text) return;
 
-      appendMessage("Admin", text);
-      input.value = "";
+      addMessage(text, 'user'); // show user message
+      messageInput.value = '';
+      messageInput.disabled = true;
 
       try {
-        logConsole("Sending admin message: " + text);
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": AUTH_TOKEN
-          },
-          body: JSON.stringify({
-            type: "text",
-            text
-          })
+        // Call Botpress converse API
+        const userId = 'web-user-' + Date.now(); // unique user id for session (you can store persistently)
+        const response = await fetch(`${BP_API_URL}/bots/${BOT_ID}/converse/${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'text', text })
         });
 
-        const result = await res.json();
-        logConsole("Status: " + res.status);
-        logConsole("Response JSON: " + JSON.stringify(result));
+        const data = await response.json();
 
-        result.responses.forEach(response => {
-          appendMessage("Bot", response.text || "[No text]");
-        });
+        // Loop responses
+        if (data.responses && data.responses.length > 0) {
+          for (const r of data.responses) {
+            if (r.type === 'text') {
+              addMessage(r.text, 'bot');
+            }
+            // You can add other types like single-choice here if needed
+          }
+        } else {
+          addMessage('🤖 Bot did not respond.', 'bot');
+        }
       } catch (err) {
-        logConsole("Error: " + err.message);
-        appendMessage("System", "❌ Error sending admin message");
+        addMessage('❌ Error communicating with Botpress.', 'bot');
+        console.error(err);
+      } finally {
+        messageInput.disabled = false;
+        messageInput.focus();
       }
-    }
+    });
+
+    // Welcome message on load
+    window.onload = () => {
+      addMessage('Hello! How can I help you today?', 'bot');
+      messageInput.focus();
+    };
   </script>
 </body>
 </html>
