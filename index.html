@@ -180,7 +180,7 @@
       select.disabled = true;
 
       // Send selected choice back to Botpress
-      sendMessage({ type: 'single-choice', payload: selectedValue });
+      sendMessage({ type: 'text', text: selectedValue });
     });
   }
 
