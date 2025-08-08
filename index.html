@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Venturerush Chatbot's</title>
   <style>
     /* Basic reset */
@@ -105,6 +105,36 @@
         transform: translateY(0);
       }
     }
+
+    /* === Responsive for Mobile === */
+    @media (max-width: 480px) {
+      body {
+        height: 100vh;
+        align-items: stretch;
+        padding: 10px;
+      }
+      #chat-container {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      #chat-messages {
+        padding: 12px;
+      }
+      #chat-input {
+        padding: 8px 12px;
+      }
+      #chat-input input {
+        font-size: 1.1rem;
+        padding: 12px 14px;
+      }
+      #chat-input button {
+        padding: 0 14px;
+        font-size: 1.1rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -121,6 +151,8 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
+  // ... YOUR EXISTING JAVASCRIPT CODE HERE, unchanged ...
+
   const chatMessages = document.getElementById('chat-messages');
   const chatForm = document.getElementById('chat-input');
   const messageInput = document.getElementById('message');
@@ -128,12 +160,10 @@
   const BOT_ID = "mk-ai-chatbot";
   const BP_API_URL = "https://venturerush.up.railway.app/api/v1";
 
-  // Function to parse markdown links in text and convert to HTML links
   function parseMarkdownLinks(text) {
     return text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
   }
 
-  // Save chat history in localStorage
   function saveChatHistory() {
     const messages = [];
     chatMessages.querySelectorAll('.message').forEach(msg => {
@@ -145,7 +175,6 @@
     localStorage.setItem('chatHistory', JSON.stringify(messages));
   }
 
-  // Attach event listener to a dropdown to handle user choice and send message
   function attachDropdownListener(select) {
     select.addEventListener('change', () => {
       const selectedValue = select.value;
@@ -158,7 +187,6 @@
     });
   }
 
-  // Load chat history from localStorage
   function loadChatHistory() {
     const history = localStorage.getItem('chatHistory');
     if (!history) return false;
@@ -169,7 +197,7 @@
         const div = document.createElement('div');
         div.classList.add('message', sender);
         if (sender === 'user') {
-          div.textContent = text.replace(/<[^>]+>/g, ''); // strip any HTML just in case
+          div.textContent = text.replace(/<[^>]+>/g, '');
         } else {
           div.innerHTML = text;
         }
@@ -177,10 +205,8 @@
       });
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      // Reset all dropdowns' selectedIndex to 0 (placeholder)
       chatMessages.querySelectorAll('select').forEach(select => {
         select.selectedIndex = 0;
-        // Reattach event listener so user choices send messages
         attachDropdownListener(select);
       });
 
@@ -190,35 +216,28 @@
     }
   }
 
-  // Updated addMessage now supports markdown rendering if markdownFlag = true
   function addMessage(text, sender = 'bot', markdownFlag = false) {
     const div = document.createElement('div');
     div.classList.add('message', sender);
 
     if (sender === 'bot') {
       if (markdownFlag) {
-        // Replace literal \n with two spaces + \n for markdown line breaks to render new lines properly
         const textWithMarkdownLineBreaks = text.replace(/\n/g, '  \n');
-        // marked will handle markdown + inline HTML like <br> correctly
         div.innerHTML = marked.parse(textWithMarkdownLineBreaks);
       } else {
-        // Replace \n with <br> for line breaks + parse markdown links
         const htmlWithLineBreaks = parseMarkdownLinks(text).replace(/\n/g, '<br>');
         div.innerHTML = htmlWithLineBreaks;
       }
     } else {
-      // For user messages, show as plain text (safer)
       div.textContent = text;
     }
 
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Save history after adding message
     saveChatHistory();
   }
 
-  // Add image message support
   function addImageMessage(imageUrl, title = '') {
     const div = document.createElement('div');
     div.classList.add('message', 'bot');
@@ -244,7 +263,6 @@
     saveChatHistory();
   }
 
-  // Add single-choice dropdown message
   function addChoiceMessage(response) {
     const container = document.createElement('div');
     container.classList.add('message', 'bot');
@@ -278,7 +296,6 @@
 
     saveChatHistory();
 
-    // Attach event listener to newly created dropdown
     attachDropdownListener(select);
   }
 
@@ -304,7 +321,6 @@
       if (data.responses && data.responses.length > 0) {
         for (const r of data.responses) {
           if (r.type === 'text') {
-            // Check if markdown flag is true
             addMessage(r.text, 'bot', r.markdown === true);
           } else if (r.type === 'single-choice') {
             addChoiceMessage(r);
