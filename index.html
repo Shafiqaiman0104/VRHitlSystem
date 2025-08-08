@@ -135,6 +135,13 @@
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
+    // Get or generate persistent userId for session
+    let userId = localStorage.getItem('botpressUserId');
+    if (!userId) {
+      userId = 'web-user-' + Date.now();
+      localStorage.setItem('botpressUserId', userId);
+    }
+
     // On form submit (send message)
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -148,7 +155,6 @@
 
       try {
         // Call Botpress converse API
-        const userId = 'web-user-' + Date.now(); // unique user id for session (you can store persistently)
         const response = await fetch(`${BP_API_URL}/bots/${BOT_ID}/converse/${userId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
