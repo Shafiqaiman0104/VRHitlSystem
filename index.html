@@ -134,8 +134,9 @@
     div.classList.add('message', sender);
 
     if (sender === 'bot') {
-      // Parse markdown links to clickable HTML
-      div.innerHTML = parseMarkdownLinks(text);
+      // Replace \n with <br> for line breaks + parse markdown links
+      const htmlWithLineBreaks = parseMarkdownLinks(text).replace(/\n/g, '<br>');
+      div.innerHTML = htmlWithLineBreaks;
     } else {
       // For user messages, show as plain text (safer)
       div.textContent = text;
