@@ -145,6 +145,19 @@
     localStorage.setItem('chatHistory', JSON.stringify(messages));
   }
 
+  // Attach event listener to a dropdown to handle user choice and send message
+  function attachDropdownListener(select) {
+    select.addEventListener('change', () => {
+      const selectedValue = select.value;
+      const selectedText = select.options[select.selectedIndex].text;
+
+      addMessage(selectedText, 'user');
+      select.disabled = true;
+
+      sendMessage({ type: 'text', text: selectedValue });
+    });
+  }
+
   // Load chat history from localStorage
   function loadChatHistory() {
     const history = localStorage.getItem('chatHistory');
@@ -167,6 +180,8 @@
       // Reset all dropdowns' selectedIndex to 0 (placeholder)
       chatMessages.querySelectorAll('select').forEach(select => {
         select.selectedIndex = 0;
+        // Reattach event listener so user choices send messages
+        attachDropdownListener(select);
       });
 
       return true;
@@ -263,15 +278,8 @@
 
     saveChatHistory();
 
-    select.addEventListener('change', () => {
-      const selectedValue = select.value;
-      const selectedText = select.options[select.selectedIndex].text;
-
-      addMessage(selectedText, 'user');
-      select.disabled = true;
-
-      sendMessage({ type: 'text', text: selectedValue });
-    });
+    // Attach event listener to newly created dropdown
+    attachDropdownListener(select);
   }
 
   let userId = localStorage.getItem('botpressUserId');
