@@ -140,8 +140,10 @@
 
     if (sender === 'bot') {
       if (markdownFlag) {
-        // Use marked.js to render markdown to HTML, then replace \n with <br> is unnecessary because marked handles line breaks.
-        div.innerHTML = marked.parse(text);
+        // Replace literal \n with two spaces + \n for markdown line breaks to render new lines properly
+        const textWithMarkdownLineBreaks = text.replace(/\n/g, '  \n');
+        // marked will handle markdown + inline HTML like <br> correctly
+        div.innerHTML = marked.parse(textWithMarkdownLineBreaks);
       } else {
         // Replace \n with <br> for line breaks + parse markdown links
         const htmlWithLineBreaks = parseMarkdownLinks(text).replace(/\n/g, '<br>');
