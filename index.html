@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Venturerush Chatbot</title>
+  <title>Venturerush Chatbot's</title>
   <style>
     /* Basic reset */
     * {
@@ -117,77 +117,127 @@
     </form>
   </div>
 
-  <script>
-    const chatMessages = document.getElementById('chat-messages');
-    const chatForm = document.getElementById('chat-input');
-    const messageInput = document.getElementById('message');
+<script>
+  const chatMessages = document.getElementById('chat-messages');
+  const chatForm = document.getElementById('chat-input');
+  const messageInput = document.getElementById('message');
 
-    // Your Botpress API info
-    const BOT_ID = "mk-ai-chatbot";
-    const BP_API_URL = "https://venturerush.up.railway.app/api/v1";
+  // Your Botpress API info
+  const BOT_ID = "mk-ai-chatbot";
+  const BP_API_URL = "https://venturerush.up.railway.app/api/v1";
 
-    // Helper: Add message to chat window
-    function addMessage(text, sender = 'bot') {
-      const div = document.createElement('div');
-      div.classList.add('message', sender);
-      div.textContent = text;
-      chatMessages.appendChild(div);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+  // Helper: Add message to chat window
+  function addMessage(text, sender = 'bot') {
+    const div = document.createElement('div');
+    div.classList.add('message', sender);
+    div.textContent = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  // Helper: Add single-choice dropdown to chat window
+  function addChoiceMessage(response) {
+    const container = document.createElement('div');
+    container.classList.add('message', 'bot');
+    
+    const label = document.createElement('div');
+    label.textContent = response.text || 'Choose an option:';
+    label.style.marginBottom = '8px';
+    container.appendChild(label);
+
+    const select = document.createElement('select');
+    select.style.padding = '8px';
+    select.style.borderRadius = '8px';
+    select.style.width = '100%';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.textContent = response.dropdownPlaceholder || 'Select...';
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    select.appendChild(placeholderOption);
+
+    for (const choice of response.choices) {
+      const option = document.createElement('option');
+      option.value = choice.value;
+      option.textContent = choice.title;
+      select.appendChild(option);
     }
 
-    // Get or generate persistent userId for session
-    let userId = localStorage.getItem('botpressUserId');
-    if (!userId) {
-      userId = 'web-user-' + Date.now();
-      localStorage.setItem('botpressUserId', userId);
-    }
+    container.appendChild(select);
+    chatMessages.appendChild(container);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // On form submit (send message)
-    chatForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    select.addEventListener('change', () => {
+      const selectedValue = select.value;
+      addMessage(select.options[select.selectedIndex].text, 'user'); // Show user choice
 
-      const text = messageInput.value.trim();
-      if (!text) return;
-
-      addMessage(text, 'user'); // show user message
-      messageInput.value = '';
-      messageInput.disabled = true;
-
-      try {
-        // Call Botpress converse API
-        const response = await fetch(`${BP_API_URL}/bots/${BOT_ID}/converse/${userId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'text', text })
-        });
-
-        const data = await response.json();
-
-        // Loop responses
-        if (data.responses && data.responses.length > 0) {
-          for (const r of data.responses) {
-            if (r.type === 'text') {
-              addMessage(r.text, 'bot');
-            }
-            // You can add other types like single-choice here if needed
-          }
-        } else {
-          addMessage('🤖 Bot did not respond.', 'bot');
-        }
-      } catch (err) {
-        addMessage('❌ Error communicating with Botpress.', 'bot');
-        console.error(err);
-      } finally {
-        messageInput.disabled = false;
-        messageInput.focus();
-      }
+      // Send selected choice back to Botpress
+      sendMessage({ type: 'single-choice', payload: selectedValue });
+      
+      // Disable dropdown after selection
+      select.disabled = true;
     });
+  }
 
-    // Welcome message on load
-    window.onload = () => {
-      addMessage('Hello! How can I help you today?', 'bot');
+  // Get or generate persistent userId for session
+  let userId = localStorage.getItem('botpressUserId');
+  if (!userId) {
+    userId = 'web-user-' + Date.now();
+    localStorage.setItem('botpressUserId', userId);
+  }
+
+  // Function to send message (text or single-choice) to Botpress
+  async function sendMessage(message) {
+    messageInput.disabled = true;
+
+    try {
+      const response = await fetch(`${BP_API_URL}/bots/${BOT_ID}/converse/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message)
+      });
+
+      const data = await response.json();
+
+      if (data.responses && data.responses.length > 0) {
+        for (const r of data.responses) {
+          if (r.type === 'text') {
+            addMessage(r.text, 'bot');
+          } else if (r.type === 'single-choice') {
+            addChoiceMessage(r);
+          }
+          // Add support for other response types if needed
+        }
+      } else {
+        addMessage('🤖 Bot did not respond.', 'bot');
+      }
+    } catch (err) {
+      addMessage('❌ Error communicating with Botpress.', 'bot');
+      console.error(err);
+    } finally {
+      messageInput.disabled = false;
       messageInput.focus();
-    };
-  </script>
+    }
+  }
+
+  // On form submit (send text message)
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const text = messageInput.value.trim();
+    if (!text) return;
+
+    addMessage(text, 'user'); // show user message
+    messageInput.value = '';
+
+    sendMessage({ type: 'text', text });
+  });
+
+  // Welcome message on load
+  window.onload = () => {
+    addMessage('Hello! How can I help you today?', 'bot');
+    messageInput.focus();
+  };
+</script>
 </body>
 </html>
